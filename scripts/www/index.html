@@ -1,11 +1,413 @@
 <!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>PakePlus</title>
-    </head>
-    <body>
-        PakePlus
-    </body>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>月经周期记录日历</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f0f5;
+        }
+        
+        .calendar-container {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .month-nav button {
+            background-color: #ff69b4;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+        }
+        
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+        }
+        
+        .calendar-day-header {
+            text-align: center;
+            font-weight: bold;
+            padding: 10px;
+            background-color: #ffe0eb;
+        }
+        
+        .calendar-day {
+            height: 40px;
+            text-align: center;
+            line-height: 40px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .calendar-day:hover {
+            background-color: #fff0f5;
+        }
+        
+        .calendar-day.period {
+            background-color: #ff69b4;
+            color: white;
+        }
+        
+        .calendar-day.predicted {
+            background-color: #ffb6c1;
+            color: white;
+        }
+        
+        .calendar-day.other-month {
+            color: #ccc;
+        }
+        
+        .controls {
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        .controls button {
+            background-color: #ff69b4;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 0 5px;
+        }
+        
+        .info-panel {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #fff0f5;
+            border-radius: 5px;
+        }
+        
+        .cycle-info {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+        }
+        
+        .cycle-item {
+            margin: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="calendar-container">
+        <h1>生理期记录日历</h1>
+        
+        <div class="calendar-header">
+            <h2 id="current-month">2023年10月</h2>
+            <div class="month-nav">
+                <button id="prev-month">&lt;</button>
+                <button id="next-month">&gt;</button>
+            </div>
+        </div>
+        
+        <div class="calendar-grid" id="calendar">
+            <!-- 日历头部 -->
+            <div class="calendar-day-header">日</div>
+            <div class="calendar-day-header">一</div>
+            <div class="calendar-day-header">二</div>
+            <div class="calendar-day-header">三</div>
+            <div class="calendar-day-header">四</div>
+            <div class="calendar-day-header">五</div>
+            <div class="calendar-day-header">六</div>
+        </div>
+        
+        <div class="controls">
+            <button id="today-btn">今天</button>
+            <button id="clear-btn">清除记录</button>
+        </div>
+        
+        <div class="info-panel">
+            <h3>周期信息</h3>
+            <div class="cycle-info">
+                <div class="cycle-item">
+                    <p>平均周期: <span id="avg-cycle">28</span> 天</p>
+                </div>
+                <div class="cycle-item">
+                    <p>经期天数: <span id="period-days">5</span> 天</p>
+                </div>
+                <div class="cycle-item">
+                    <p>下次预计: <span id="next-period">2023-11-05</span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 月经记录数据存储
+        let periodData = JSON.parse(localStorage.getItem('periodData')) || {
+            cycles: [] // 存储每个周期的开始日期
+        };
+        
+        // 当前显示的年月
+        let currentYear = new Date().getFullYear();
+        let currentMonth = new Date().getMonth();
+        
+        // 初始化日历
+        function initCalendar() {
+            renderCalendar(currentYear, currentMonth);
+            updateCycleInfo();
+            
+            // 事件监听
+            document.getElementById('prev-month').addEventListener('click', () => {
+                currentMonth--;
+                if (currentMonth < 0) {
+                    currentMonth = 11;
+                    currentYear--;
+                }
+                renderCalendar(currentYear, currentMonth);
+            });
+            
+            document.getElementById('next-month').addEventListener('click', () => {
+                currentMonth++;
+                if (currentMonth > 11) {
+                    currentMonth = 0;
+                    currentYear++;
+                }
+                renderCalendar(currentYear, currentMonth);
+            });
+            
+            document.getElementById('today-btn').addEventListener('click', () => {
+                const today = new Date();
+                currentYear = today.getFullYear();
+                currentMonth = today.getMonth();
+                renderCalendar(currentYear, currentMonth);
+            });
+            
+            document.getElementById('clear-btn').addEventListener('click', () => {
+                if (confirm('确定要清除所有记录吗？')) {
+                    periodData.cycles = [];
+                    localStorage.setItem('periodData', JSON.stringify(periodData));
+                    renderCalendar(currentYear, currentMonth);
+                    updateCycleInfo();
+                }
+            });
+        }
+        
+        // 渲染日历
+        function renderCalendar(year, month) {
+            const calendarEl = document.getElementById('calendar');
+            // 清除除头部外的所有元素
+            while (calendarEl.children.length > 7) {
+                calendarEl.removeChild(calendarEl.lastChild);
+            }
+            
+            // 更新月份标题
+            document.getElementById('current-month').textContent = `${year}年${month + 1}月`;
+            
+            // 获取当月第一天和最后一天
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const startDate = new Date(firstDay);
+            startDate.setDate(startDate.getDate() - firstDay.getDay()); // 从周日开始
+            
+            // 获取结束日期（6行42天）
+            const endDate = new Date(startDate);
+            endDate.setDate(endDate.getDate() + 41);
+            
+            // 生成日历天数
+            const currentDate = new Date(startDate);
+            for (let i = 0; i < 42; i++) {
+                const dayEl = document.createElement('div');
+                dayEl.className = 'calendar-day';
+                
+                // 判断是否是当前月
+                const isCurrentMonth = currentDate.getMonth() === month;
+                if (!isCurrentMonth) {
+                    dayEl.classList.add('other-month');
+                }
+                
+                // 显示日期
+                dayEl.textContent = currentDate.getDate();
+                
+                // 检查是否是生理期日期
+                const dateStr = formatDate(currentDate);
+                if (isInPeriod(dateStr)) {
+                    dayEl.classList.add('period');
+                } else if (isPredicted(dateStr)) {
+                    dayEl.classList.add('predicted');
+                }
+                
+                // 添加点击事件
+                dayEl.addEventListener('click', () => {
+                    togglePeriod(dateStr);
+                    dayEl.classList.toggle('period');
+                    updateCycleInfo();
+                });
+                
+                calendarEl.appendChild(dayEl);
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+        }
+        
+        // 格式化日期为 YYYY-MM-DD
+        function formatDate(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+        
+        // 判断日期是否在生理期内
+        function isInPeriod(dateStr) {
+            // 检查是否在已记录的生理期内
+            for (const cycle of periodData.cycles) {
+                const cycleStart = new Date(cycle.start);
+                for (let i = 0; i < 7; i++) { // 假设经期持续7天
+                    const cycleDate = new Date(cycleStart);
+                    cycleDate.setDate(cycleStart.getDate() + i);
+                    const cycleDateStr = formatDate(cycleDate);
+                    
+                    if (cycleDateStr === dateStr) {
+                        return true;
+                    }
+                    
+                    // 如果当前日期晚于记录的开始日期但还没到7天，继续检查
+                    if (cycleDateStr > dateStr) {
+                        break;
+                    }
+                }
+            }
+            return false;
+        }
+        
+        // 判断是否是预测日期
+        function isPredicted(dateStr) {
+            // 如果是未来日期，不预测
+            const today = new Date();
+            const checkDate = new Date(dateStr);
+            if (checkDate > today) {
+                // 计算预测的生理期
+                if (periodData.cycles.length > 0) {
+                    // 获取最近一次生理期
+                    const latestCycle = periodData.cycles[periodData.cycles.length - 1];
+                    const latestStart = new Date(latestCycle.start);
+                    
+                    // 计算平均周期
+                    const avgCycle = calculateAvgCycle();
+                    
+                    // 预测下一次生理期
+                    const predictedStart = new Date(latestStart);
+                    predictedStart.setDate(predictedStart.getDate() + avgCycle);
+                    
+                    // 检查是否在预测期间
+                    for (let i = 0; i < 7; i++) { // 假设经期持续7天
+                        const predDate = new Date(predictedStart);
+                        predDate.setDate(predictedStart.getDate() + i);
+                        const predDateStr = formatDate(predDate);
+                        
+                        if (predDateStr === dateStr) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+        
+        // 切换生理期记录
+        function togglePeriod(dateStr) {
+            const date = new Date(dateStr);
+            const today = new Date();
+            
+            // 只允许修改今天及以前的日期
+            if (date > today) {
+                alert('只能记录今天及以前的日期');
+                return;
+            }
+            
+            // 检查是否已存在记录
+            let cycleIndex = -1;
+            for (let i = 0; i < periodData.cycles.length; i++) {
+                if (periodData.cycles[i].start === dateStr) {
+                    cycleIndex = i;
+                    break;
+                }
+            }
+            
+            if (cycleIndex !== -1) {
+                // 如果存在，移除记录
+                periodData.cycles.splice(cycleIndex, 1);
+            } else {
+                // 如果不存在，添加记录
+                periodData.cycles.push({
+                    start: dateStr,
+                    end: dateStr // 简化处理，实际可以记录结束日期
+                });
+                
+                // 按日期排序
+                periodData.cycles.sort((a, b) => new Date(a.start) - new Date(b.start));
+            }
+            
+            // 保存到本地存储
+            localStorage.setItem('periodData', JSON.stringify(periodData));
+        }
+        
+        // 计算平均周期
+        function calculateAvgCycle() {
+            if (periodData.cycles.length < 2) {
+                return 28; // 默认28天
+            }
+            
+            let total = 0;
+            let count = 0;
+            
+            for (let i = 1; i < periodData.cycles.length; i++) {
+                const prevDate = new Date(periodData.cycles[i-1].start);
+                const currDate = new Date(periodData.cycles[i].start);
+                const diffTime = currDate - prevDate;
+                const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+                
+                total += diffDays;
+                count++;
+            }
+            
+            return count > 0 ? Math.round(total / count) : 28;
+        }
+        
+        // 更新周期信息
+        function updateCycleInfo() {
+            const avgCycle = calculateAvgCycle();
+            document.getElementById('avg-cycle').textContent = avgCycle;
+            
+            // 经期天数（这里简化为固定5天，实际可以记录）
+            document.getElementById('period-days').textContent = 5;
+            
+            // 计算下次预测日期
+            if (periodData.cycles.length > 0) {
+                const latestCycle = periodData.cycles[periodData.cycles.length - 1];
+                const latestStart = new Date(latestCycle.start);
+                const nextStart = new Date(latestStart);
+                nextStart.setDate(nextStart.getDate() + avgCycle);
+                
+                const nextStartStr = formatDate(nextStart);
+                document.getElementById('next-period').textContent = nextStartStr;
+            }
+        }
+        
+        // 初始化应用
+        document.addEventListener('DOMContentLoaded', initCalendar);
+    </script>
+</body>
 </html>
