@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>双人五子棋游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .game-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 30px;
+            max-width: 800px;
+            width: 100%;
+        }
+
+        .game-header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .game-header h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .player-info {
+            text-align: center;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+
+        .player1 {
+            background: #ffebee;
+            color: #c62828;
+            border: 2px solid #ffcdd2;
+        }
+
+        .player2 {
+            background: #e3f2fd;
+            color: #1565c0;
+            border: 2px solid #bbdefb;
+        }
+
+        .current-player {
+            transform: scale(1.1);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .game-board {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 25px;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(15, 30px);
+            grid-template-rows: repeat(15, 30px);
+            gap: 0;
+            background: #dcb35c;
+            padding: 10px;
+            border-radius: 5px;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .cell {
+            width: 30px;
+            height: 30px;
+            border: 1px solid #8B4513;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+
+        .cell:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .stone {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+
+        .black {
+            background: radial-gradient(circle at 30% 30%, #333, #000);
+        }
+
+        .white {
+            background: radial-gradient(circle at 30% 30%, #fff, #ddd);
+            border: 1px solid #999;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #da190b;
+            transform: translateY(-2px);
+        }
+
+        .game-status {
+            text-align: center;
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            background: #f8f9fa;
+        }
+
+        .winning-stone {
+            animation: pulse 0.5s ease-in-out 3;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        .win-message {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .instructions {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .instructions h3 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .instructions ul {
+            padding-left: 20px;
+        }
+
+        .instructions li {
+            margin-bottom: 8px;
+            color: #666;
+        }
+
+        @media (max-width: 600px) {
+            .game-container {
+                padding: 15px;
+            }
+            
+            .game-header h1 {
+                font-size: 2em;
+            }
+            
+            .board {
+                transform: scale(0.8);
+                transform-origin: center;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .btn {
+                width: 100%;
+                max-width: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <h1>🎮 双人五子棋</h1>
+            <p>和朋友一起享受策略对战的乐趣</p>
+        </div>
+
+        <div class="game-info">
+            <div class="player-info player1 current-player" id="player1">
+                <div>🎮 玩家一 (黑棋)</div>
+                <div>●</div>
+            </div>
+            <div class="player-info player2" id="player2">
+                <div>🎮 玩家二 (白棋)</div>
+                <div>○</div>
+            </div>
+        </div>
+
+        <div class="game-status" id="gameStatus">
+            玩家一 (黑棋) 的回合
+        </div>
+
+        <div class="game-board">
+            <div class="board" id="board"></div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-primary" id="newGameBtn">🔄 新游戏</button>
+            <button class="btn btn-secondary" id="undoBtn">↩️ 悔棋</button>
+        </div>
+
+        <div class="win-message" id="winMessage">
+            <h2>🎉 恭喜获胜！</h2>
+            <p id="winnerText"></p>
+        </div>
+
+        <div class="instructions">
+            <h3>📝 游戏规则：</h3>
+            <ul>
+                <li>玩家轮流在棋盘上放置棋子</li>
+                <li>黑棋先行，白棋后行</li>
+                <li>率先在横、竖、斜任一方向连成五子者获胜</li>
+                <li>点击棋盘任意空位放置棋子</li>
+                <li>可使用悔棋功能返回上一步</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const boardSize = 15;
+            const board = document.getElementById('board');
+            const gameStatus = document.getElementById('gameStatus');
+            const player1 = document.getElementById('player1');
+            const player2 = document.getElementById('player2');
+            const newGameBtn = document.getElementById('newGameBtn');
+            const undoBtn = document.getElementById('undoBtn');
+            const winMessage = document.getElementById('winMessage');
+            const winnerText = document.getElementById('winnerText');
+            
+            let gameBoard = Array(boardSize).fill().map(() => Array(boardSize).fill(0));
+            let currentPlayer = 1; // 1 for black, 2 for white
+            let gameOver = false;
+            let moveHistory = [];
+            
+            // 初始化棋盘
+            function initBoard() {
+                board.innerHTML = '';
+                for (let row = 0; row < boardSize; row++) {
+                    for (let col = 0; col < boardSize; col++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'cell';
+                        cell.dataset.row = row;
+                        cell.dataset.col = col;
+                        cell.addEventListener('click', () => placeStone(row, col));
+                        board.appendChild(cell);
+                    }
+                }
+            }
+            
+            // 放置棋子
+            function placeStone(row, col) {
+                if (gameOver || gameBoard[row][col] !== 0) return;
+                
+                gameBoard[row][col] = currentPlayer;
+                moveHistory.push({row, col, player: currentPlayer});
+                
+                const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
+                const stone = document.createElement('div');
+                stone.className = `stone ${currentPlayer === 1 ? 'black' : 'white'}`;
+                cell.appendChild(stone);
+                
+                // 检查是否获胜
+                if (checkWin(row, col)) {
+                    endGame(currentPlayer);
+                    return;
+                }
+                
+                // 检查是否平局
+                if (isBoardFull()) {
+                    endGame(0); // 平局
+                    return;
+                }
+                
+                // 切换玩家
+                currentPlayer = currentPlayer === 1 ? 2 : 1;
+                updateGameStatus();
+            }
+            
+            // 检查是否获胜
+            function checkWin(row, col) {
+                const player = gameBoard[row][col];
+                
+                // 检查四个方向：水平、垂直、对角线（两个方向）
+                const directions = [
+                    [0, 1],   // 水平
+                    [1, 0],   // 垂直
+                    [1, 1],   // 主对角线
+                    [1, -1]   // 反对角线
+                ];
+                
+                for (const [dx, dy] of directions) {
+                    let count = 1; // 当前棋子算一个
+                    
+                    // 正向检查
+                    for (let i = 1; i < 5; i++) {
+                        const newRow = row + i * dx;
+                        const newCol = col + i * dy;
+                        if (newRow >= 0 && newRow < boardSize && 
+                            newCol >= 0 && newCol < boardSize && 
+                            gameBoard[newRow][newCol] === player) {
+                            count++;
+                        } else {
+                            break;
+                        }
+                    }
+                    
+                    // 反向检查
+                    for (let i = 1; i < 5; i++) {
+                        const newRow = row - i * dx;
+                        const newCol = col - i * dy;
+                        if (newRow >= 0 && newRow < boardSize && 
+                            newCol >= 0 && newCol < boardSize && 
+                            gameBoard[newRow][newCol] === player) {
+                            count++;
+                        } else {
+                            break;
+                        }
+                    }
+                    
+                    if (count >= 5) {
+                        highlightWinningStones(row, col, dx, dy, player);
+                        return true;
+                    }
+                }
+                
+                return false;
+            }
+            
+            // 高亮获胜棋子
+            function highlightWinningStones(row, col, dx, dy, player) {
+                // 正向计数
+                const stones = [{row, col}];
+                for (let i = 1; i < 5; i++) {
+                    const newRow = row + i * dx;
+                    const newCol = col + i * dy;
+                    if (newRow >= 0 && newRow < boardSize && 
+                        newCol >= 0 && newCol < boardSize && 
+                        gameBoard[newRow][newCol] === player) {
+                        stones.push({row: newRow, col: newCol});
+                    } else {
+                        break;
+                    }
+                }
+                
+                // 反向计数
+                for (let i = 1; i < 5; i++) {
+                    const newRow = row - i * dx;
+                    const newCol = col - i * dy;
+                    if (newRow >= 0 && newRow < boardSize && 
+                        newCol >= 0 && newCol < boardSize && 
+                        gameBoard[newRow][newCol] === player && 
+                        stones.length < 5) {
+                        stones.push({row: newRow, col: newCol});
+                    } else {
+                        break;
+                    }
+                }
+                
+                // 高亮前5个连子
+                for (let i = 0; i < Math.min(5, stones.length); i++) {
+                    const {row: r, col: c} = stones[i];
+                    const cell = document.querySelector(`.cell[data-row="${r}"][data-col="${c}"]`);
+                    const stone = cell.querySelector('.stone');
+                    if (stone) {
+                        stone.classList.add('winning-stone');
+                    }
+                }
+            }
+            
+            // 检查棋盘是否已满
+            function isBoardFull() {
+                for (let row = 0; row < boardSize; row++) {
+                    for (let col = 0; col < boardSize; col++) {
+                        if (gameBoard[row][col] === 0) {
+                            return false;
+                        }
+                    }
+                }
+                return true;
+            }
+            
+            // 结束游戏
+            function endGame(winner) {
+                gameOver = true;
+                
+                if (winner === 0) {
+                    gameStatus.textContent = '🤝 平局！棋盘已满';
+                } else {
+                    const winnerName = winner === 1 ? '玩家一 (黑棋)' : '玩家二 (白棋)';
+                    gameStatus.textContent = `🎉 ${winnerName} 获胜！`;
+                    winnerText.textContent = `${winnerName} 获得了胜利！`;
+                    winMessage.style.display = 'block';
+                }
+            }
+            
+            // 更新游戏状态显示
+            function updateGameStatus() {
+                if (gameOver) return;
+                
+                const playerName = currentPlayer === 1 ? '玩家一 (黑棋)' : '玩家二 (白棋)';
+                gameStatus.textContent = `${playerName} 的回合`;
+                
+                // 更新玩家指示器
+                player1.classList.toggle('current-player', currentPlayer === 1);
+                player2.classList.toggle('current-player', currentPlayer === 2);
+            }
+            
+            // 新游戏
+            function newGame() {
+                gameBoard = Array(boardSize).fill().map(() => Array(boardSize).fill(0));
+                currentPlayer = 1;
+                gameOver = false;
+                moveHistory = [];
+                
+                initBoard();
+                updateGameStatus();
+                winMessage.style.display = 'none';
+            }
+            
+            // 悔棋
+            function undoMove() {
+                if (moveHistory.length === 0 || gameOver) return;
+                
+                const lastMove = moveHistory.pop();
+                gameBoard[lastMove.row][lastMove.col] = 0;
+                
+                const cell = document.querySelector(`.cell[data-row="${lastMove.row}"][data-col="${lastMove.col}"]`);
+                if (cell) {
+                    cell.innerHTML = '';
+                }
+                
+                currentPlayer = lastMove.player; // 悔棋后轮到刚才下棋的玩家
+                gameOver = false;
+                winMessage.style.display = 'none';
+                updateGameStatus();
+            }
+            
+            // 事件监听器
+            newGameBtn.addEventListener('click', newGame);
+            undoBtn.addEventListener('click', undoMove);
+            
+            // 初始化游戏
+            initBoard();
+            updateGameStatus();
+        });
+    </script>
+</body>
+</html>
